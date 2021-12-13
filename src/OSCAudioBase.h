@@ -1,0 +1,298 @@
+/* Open Sound Control for Audio Library for Teensy 3.x, 4.x
+ * Copyright (c) 2021, Jonathan Oakley, teensy-osc@0akley.co.uk
+ *
+ * Development of this library was enabled by PJRC.COM, LLC by sales of
+ * Teensy and Audio Adaptor boards, implementing libraries, and maintaining
+ * the forum at https://forum.pjrc.com/ 
+ *
+ * Please support PJRC's efforts to develop open source software by 
+ * purchasing Teensy or other PJRC products.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice, development funding notice, and this permission
+ * notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+#if !defined(_OSCAUDIOBASE_H_)
+#define _OSCAUDIOBASE_H_
+
+#include <OSCBundle.h>
+#include <Audio.h>
+
+#define DBG_SERIAL SerialUSB1
+
+#if defined(SAFE_RELEASE)  // only defined in Dynamic Audio Objects library
+#define DYNAMIC_AUDIO_AVAILABLE
+#endif // defined(SAFE_RELEASE)
+
+
+class OSCAudioBase
+{
+  public:
+    OSCAudioBase(const char* _name,AudioStream* _sibling = NULL) : name(NULL), sibling(_sibling)
+    {
+      setName(_name); 
+      linkIn(); 
+    }
+	
+    
+    virtual ~OSCAudioBase() {if (NULL != name) free(name); linkOut(); }
+    virtual void route(OSCMessage& msg, int addressOffset, OSCBundle&)=0;
+    char* name;
+    size_t nameLen;
+	AudioStream* sibling;
+	enum error {OK,NOT_FOUND,BLANK_NAME,DUPLICATE_NAME};
+	
+	
+	/**
+	 * (Re)set the name of the OSCAudio object so the system can find it.
+	 * We don't allow a NULL name, as everything should have a name.
+	 * If there's already enough space for a new name then we don't 
+	 * re-allocate less, which may help heap fragmentation in some small way.
+	 */
+	void setName(const char* _name)
+	{		
+#define NAME_PAD 3	
+	  void* toFree = name;
+	  if (NULL != _name)
+      {
+        nameLen = strlen(_name);
+                
+		if (nameAlloc < nameLen+NAME_PAD || NULL == name)
+		{
+			nameAlloc = nameLen+NAME_PAD;
+			name = (char*) malloc(nameAlloc); // include space for // and null terminator
+		}
+		else
+			toFree = NULL;
+		
+        if (NULL != name)
+        {
+          name[0] = '/'; // for routing
+          strcpy(name+1,_name);
+		  //DBG_SERIAL.printf("Created %s at 0x%08X\n",name,(uint32_t) name);
+        }
+		
+		if (NULL != toFree)
+		{
+			//DBG_SERIAL.printf("now free 0x%08X...\n",(uint32_t) toFree);
+			//DBG_SERIAL.flush();
+			free(toFree);
+		}		
+      }
+	}
+	
+	
+	/**
+	 * Check to see if message is directed at audio instances whose name matches ours
+	 */
+    bool isMine(OSCMessage& msg, int addressOffset) {return msg.match(name,addressOffset) == (int) nameLen+1;}
+	
+	
+	/**
+	 * Check to see if message's parameter types match those expected for the 
+	 * candidate function to be called.
+	 */
+    static bool validParams(OSCMessage& msg,	//!< OSC message to check
+							const char* types)	//!< expected parameter types: NULL imples none expected
+    {
+      size_t sl = 0;
+      bool result;
+	  
+	  if (NULL != types)
+		sl = strlen(types);
+	  result= (size_t) msg.size() == sl;
+	  
+      for (size_t i=0;i<sl && result;i++)
+      {
+        char type = msg.getType(i);
+        
+        result = types[i] == type;
+        if (!result && ';' == types[i]) // boolean: encoded directly in type
+          result = type == 'T' || type == 'F';
+      }
+      
+      return result;
+    }
+
+
+	/**
+	 * Check to see if message matches expected target pattern and parameter types,
+	 * AFTER the instance's name.
+	 */
+    bool isTarget(OSCMessage& msg,int addressOffset,const char* pattern,const char* types)
+    {
+      bool result = msg.fullMatch(pattern,addressOffset+nameLen+1) && validParams(msg,types);
+      
+      return result;
+    }
+	
+	/**
+	 * Check to see if message matches expected target pattern and parameter types
+	 */
+    static bool isStaticTarget(OSCMessage& msg,int addressOffset,const char* pattern,const char* types)
+    {
+      return msg.fullMatch(pattern,addressOffset) && validParams(msg,types);
+	}
+	
+	
+    void debugPrint(OSCMessage& msg, int addressOffset)
+    {
+      char prt[50];
+      msg.getAddress(prt,addressOffset);
+
+      if (NULL != name)
+        DBG_SERIAL.println(name);
+      DBG_SERIAL.println(addressOffset);
+      DBG_SERIAL.println(prt);
+      DBG_SERIAL.println(isMine(msg,addressOffset));
+      DBG_SERIAL.println(msg.size());
+      DBG_SERIAL.println();      
+    }
+
+	/**
+	 * Route a message for the audio system to every known object.
+	 */
+    static void routeAll(OSCMessage& msg, 	//!< received message
+						 int addressOffset,	//!< offset past the already used part of the address
+						 OSCBundle& reply)	//!< bundle to hold reply
+    {
+      OSCAudioBase** ppLink = &first_route; 
+      while (NULL != *ppLink)
+      {
+        (*ppLink)->route(msg,addressOffset,reply);
+        ppLink = &((*ppLink)->next_route);
+      }
+    }
+
+
+	/**
+	 * Find an OSC audio object by name
+	 */
+    static OSCAudioBase* find(const char* _name)	//!< object to find
+    {
+		OSCAudioBase* result = NULL;
+		OSCAudioBase** ppLink = &first_route; 
+		while (NULL != *ppLink)
+		{
+			if (0 == strcmp(_name,(*ppLink)->name+1))
+			{
+				result = *ppLink;
+				break;
+			}
+			ppLink = &((*ppLink)->next_route);
+		}
+	  
+		return result;
+    }
+
+	/**
+	 * Return pointer to first OSC audio object
+	 */
+    static OSCAudioBase* getFirst(void)	
+	{
+		return first_route;
+	}
+	
+	/**
+	 * Return pointer to next OSC audio object after given one
+	 */
+    OSCAudioBase* getNext(void)
+	{
+		return next_route;
+	}
+	
+	static char* sanitise(const char* src, char* dst);
+	static char* trimUnderscores(const char* src, char* dst);
+    static void routeDynamic(OSCMessage& msg, int addressOffset, OSCBundle& reply);
+	
+	// Reply mechanisms:
+	void addReplyExecuted(OSCMessage& msg, int addressOffset, OSCBundle& reply);
+	
+	static OSCMessage& staticPrepareReplyResult(OSCMessage& msg, OSCBundle& reply);
+	OSCMessage& prepareReplyResult(OSCMessage& msg, OSCBundle& reply);
+	void addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, bool v);
+	void addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, float v);
+	void addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, int32_t v);
+	void addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, uint32_t v);
+	void addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, uint8_t v);
+	void addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, uint16_t v);
+
+	
+  private:
+	static void renameObject(OSCMessage& msg, int addressOffset, OSCBundle& reply);
+	size_t nameAlloc;	//!< space allocated for name: may be shorter than current name
+	// existing objects: message passing and linking in/out
+    static OSCAudioBase* first_route; //!< linked list to route OSC messages to all derived instances
+    OSCAudioBase* next_route;
+    void linkIn() {next_route = first_route; first_route = this;}
+    void linkOut() 
+    {
+      OSCAudioBase** ppLink = &first_route; 
+      while (NULL != *ppLink && this != *ppLink)
+        ppLink = &((*ppLink)->next_route);
+      if (NULL != ppLink)
+      {
+        *ppLink = next_route;
+        next_route = NULL;
+      }
+    }
+	
+#if defined(DYNAMIC_AUDIO_AVAILABLE)
+//============================== Dynamic Audio Objects ==================================================
+    
+  private:
+	// dynamic audio objects:
+	static void createConnection(OSCMessage& msg, int addressOffset, OSCBundle& reply);
+	static void createObject(OSCMessage& msg, int addressOffset, OSCBundle& reply);
+	static void destroyObject(OSCMessage& msg, int addressOffset, OSCBundle& reply);
+	static void clearAllObjects(OSCMessage& msg, int addressOffset, OSCBundle& reply);
+	
+#endif // defined(DYNAMIC_AUDIO_AVAILABLE)	
+};
+
+
+#if defined(DYNAMIC_AUDIO_AVAILABLE) 
+//============================== Dynamic Audio Objects ==================================================
+// ============== AudioConnection ====================
+class OSCAudioConnection : public AudioConnection, OSCAudioBase
+{
+    public:
+        OSCAudioConnection(const char* _name) :  OSCAudioBase(_name) {}
+
+        void route(OSCMessage& msg, int addressOffset, OSCBundle& reply)
+        {
+          if (isMine(msg,addressOffset))
+          { 
+            if (isTarget(msg,addressOffset,"/c*","ss")) {OSCconnect(msg,addressOffset,reply,true);}
+            else if (isTarget(msg,addressOffset,"/c*","sisi")) {OSCconnect(msg,addressOffset,reply);} 
+            else if (isTarget(msg,addressOffset,"/d*",NULL)) {disconnect();} 
+          }
+        }
+		
+	private:
+		void OSCconnect(OSCMessage& msg,int addressOffset,OSCBundle& reply, bool zeroToZero = false);
+};
+#endif // defined(DYNAMIC_AUDIO_AVAILABLE)	
+
+#if defined(DYNAMIC_AUDIO_AVAILABLE)
+#include <OSCAudioAutogen-dynamic.h>
+#else
+#include <OSCAudioAutogen-static.h>
+#endif // defined(DYNAMIC_AUDIO_AVAILABLE)
+
+#endif // !defined(_OSCAUDIOBASE_H_)
