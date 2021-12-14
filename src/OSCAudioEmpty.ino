@@ -52,6 +52,7 @@
 
 //SLIPEncodedSerial HWSERIAL(HWSERIALPORT);
 
+
 SLIPEncodedUSBSerial HWSERIAL(Serial);
 
 
@@ -66,8 +67,8 @@ DBG_SERIAL.println("OSC dynamic test started!");
     DBG_SERIAL.println(CrashReport);
     CrashReport.clear();
   }
-	HWSERIAL.begin(115200);
-  HWSERIAL.setTimeout(100);
+	//HWSERIAL.begin(115200);
+  //HWSERIAL.setTimeout(100);
 
   //-------------------------------
   AudioMemory(50); // no idea what we'll need, so allow plenty
