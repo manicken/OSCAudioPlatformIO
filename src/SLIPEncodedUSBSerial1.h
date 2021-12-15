@@ -43,7 +43,7 @@ public:
 //different constructor for each platform
 #if  defined(CORE_TEENSY)
 #if defined(USB_HOST_TEENSY36)
-                         USBSerial2
+                         USBSerial1
 #else
                          usb_serial2_class
 #endif

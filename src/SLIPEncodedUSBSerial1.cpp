@@ -18,13 +18,6 @@ SLIPEncodedUSBSerial1::SLIPEncodedUSBSerial1(
 #else
                                            usb_serial2_class
 #endif
-#elif defined(__SAM3X8E__) || defined(__AVR_ATmega32U4__) || defined(_SAMD21_)  || defined(__ARM__)
-                                           Serial_
-                                        
-#elif (defined(__PIC32MX__) || defined(__PIC32MZ__))
-                                           CDCACM
-#else
-#error unknown platform
 #endif
                                            &s){
 	serial = &s;

@@ -36,7 +36,7 @@
 #include <OSCBundle.h>
 
 #include <SLIPEncodedUSBSerial1.h>
-#include <usb_serial.h>
+//#include <usb_serial.h>
 
 #include <Audio.h>
 #include <Wire.h>
