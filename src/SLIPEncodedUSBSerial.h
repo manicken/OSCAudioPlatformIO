@@ -10,7 +10,7 @@ Extends the Serial class to encode SLIP over serial
 #include <Stream.h>
 
 
-#if (defined(TEENSYDUINO) && defined(USB_DUAL_SERIAL)) || (!defined(TEENSYDUINO) && defined(__AVR_ATmega32U4__)) || defined(__SAM3X8E__) || (defined(_USB) && defined(_USE_USB_FOR_SERIAL_))  || defined(_SAMD21_) || (defined(__PIC32MX__) || defined(__PIC32MZ__))
+#if (defined(TEENSYDUINO) && defined(USB_SERIAL)) || (!defined(TEENSYDUINO) && defined(__AVR_ATmega32U4__)) || defined(__SAM3X8E__) || (defined(_USB) && defined(_USE_USB_FOR_SERIAL_))  || defined(_SAMD21_) || (defined(__PIC32MX__) || defined(__PIC32MZ__))
 
 
 //import the serial USB object

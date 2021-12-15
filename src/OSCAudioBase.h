@@ -33,7 +33,7 @@
 #include <OSCBundle.h>
 #include <Audio.h>
 
-#define DBG_SERIAL SerialUSB1
+#define DBG_SERIAL Serial
 
 #if defined(SAFE_RELEASE)  // only defined in Dynamic Audio Objects library
 #define DYNAMIC_AUDIO_AVAILABLE

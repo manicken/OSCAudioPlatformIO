@@ -35,15 +35,15 @@
 
 #include <OSCBundle.h>
 
-#include <SLIPEncodedUSBSerial.h>
-
+#include <SLIPEncodedUSBSerial1.h>
+#include <usb_serial.h>
 
 #include <Audio.h>
 #include <Wire.h>
 //#include <SPI.h>
 //#include <SD.h>
 //#include <SerialFlash.h>
-#define DBG_SERIAL SerialUSB1
+#define DBG_SERIAL Serial
 
 #include "OSCAudioBase.h"
 
@@ -52,8 +52,7 @@
 
 //SLIPEncodedSerial HWSERIAL(HWSERIALPORT);
 
-
-SLIPEncodedUSBSerial HWSERIAL(Serial);
+SLIPEncodedUSBSerial1 OSC_SERIAL(SerialUSB1);
 
 
 
@@ -151,9 +150,9 @@ void sendReply(OSCBundle& reply)
   DBG_SERIAL.printf("\nReply has %d messages\n",reply.size());  
 
   // for real!
-  HWSERIAL.beginPacket();
-  reply.send(HWSERIAL); 
-  HWSERIAL.endPacket();
+  OSC_SERIAL.beginPacket();
+  reply.send(SerialUSB1); 
+  OSC_SERIAL.endPacket();
 }
 
 // work with SLIP-protocol serial port:
@@ -166,13 +165,13 @@ void loop()
   char firstCh = 0;
   int msgLen;
   
-  while (!HWSERIAL.endofPacket())
+  while (!OSC_SERIAL.endofPacket())
   {
     
-    msgLen = HWSERIAL.available();
+    msgLen = OSC_SERIAL.available();
     while (msgLen--)
     {
-      char c = HWSERIAL.read();
+      char c = OSC_SERIAL.read();
       // figure out if it's a message or a bundle
       if (0 == firstCh)
         firstCh = c;

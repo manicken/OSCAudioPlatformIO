@@ -1,22 +1,22 @@
 
-#include "SLIPEncodedUSBSerial.h"
+#include "SLIPEncodedUSBSerial1.h"
 
 /*
  CONSTRUCTOR
  */
 //instantiate with the transmission layer
 
-#if (defined(CORE_TEENSY) && defined(USB_SERIAL)) || (!defined(CORE_TEENSY) && defined(__AVR_ATmega32U4__)) || defined(__SAM3X8E__) || (defined(_USB) && defined(_USE_USB_FOR_SERIAL_)) || defined(BOARD_maple_mini) || defined(_SAMD21_)  || defined(__ARM__) || (defined(__PIC32MX__) || defined(__PIC32MZ__))
+#if (defined(CORE_TEENSY) && (defined(USB_DUAL_SERIAL) || defined(USB_TRIPLE_SERIAL)))
 
 
 //USB Serials
-SLIPEncodedUSBSerial::SLIPEncodedUSBSerial(
+SLIPEncodedUSBSerial1::SLIPEncodedUSBSerial1(
 
 #if  defined(CORE_TEENSY)
 #if defined(USB_HOST_TEENSY36)
                                            USBSerial
 #else
-                                           usb_serial_class
+                                           usb_serial2_class
 #endif
 #elif defined(__SAM3X8E__) || defined(__AVR_ATmega32U4__) || defined(_SAMD21_)  || defined(__ARM__)
                                            Serial_
@@ -39,7 +39,7 @@ static const uint8_t slipescesc = 0335;
  SERIAL METHODS
  */
 
-bool SLIPEncodedUSBSerial::endofPacket()
+bool SLIPEncodedUSBSerial1::endofPacket()
 {
 	if(rstate == SECONDEOT)
 	{
@@ -61,7 +61,7 @@ bool SLIPEncodedUSBSerial::endofPacket()
 	}
 	return false;
 }
-int SLIPEncodedUSBSerial::available(){
+int SLIPEncodedUSBSerial1::available(){
 back:
 	int cnt = serial->available();
 	
@@ -104,7 +104,7 @@ back:
 }
 
 //reads a byte from the buffer
-int SLIPEncodedUSBSerial::read(){
+int SLIPEncodedUSBSerial1::read(){
 back:
 	uint8_t c = serial->read();
 	if(rstate==CHAR)
@@ -139,7 +139,7 @@ back:
 		return -1;
 }
 #ifdef FUTUREDEVELOPMENT
-int SLIPEncodedUSBSerial::readBytes( uint8_t *buffer, size_t size)
+int SLIPEncodedUSBSerial1::readBytes( uint8_t *buffer, size_t size)
 {
     int count = 0;
     while(!endofPacket() && available() && (size>0))
@@ -160,7 +160,7 @@ int SLIPEncodedUSBSerial::readBytes( uint8_t *buffer, size_t size)
 #endif
 
 // as close as we can get to correct behavior
-int SLIPEncodedUSBSerial::peek(){
+int SLIPEncodedUSBSerial1::peek(){
 	uint8_t c = serial->peek();
 	if(rstate==SLIPESC)
 	{
@@ -173,7 +173,7 @@ int SLIPEncodedUSBSerial::peek(){
 }
 
 //encode SLIP
-size_t SLIPEncodedUSBSerial::write(uint8_t b){
+size_t SLIPEncodedUSBSerial1::write(uint8_t b){
 	if(b == eot){ 
 		serial->write(slipesc);
 		return serial->write(slipescend); 
@@ -184,14 +184,14 @@ size_t SLIPEncodedUSBSerial::write(uint8_t b){
 		return serial->write(b);
 	}	
 }
-size_t SLIPEncodedUSBSerial::write(const uint8_t *buffer, size_t size)
+size_t SLIPEncodedUSBSerial1::write(const uint8_t *buffer, size_t size)
 {
     size_t result=0;
     while(size--)
         result = write(*buffer++); return result;
 }
 
-void SLIPEncodedUSBSerial::begin(unsigned long baudrate){
+void SLIPEncodedUSBSerial1::begin(unsigned long baudrate){
 	serial->begin(baudrate);
         //
         // needed on Leonardo?
@@ -199,17 +199,17 @@ void SLIPEncodedUSBSerial::begin(unsigned long baudrate){
         //        ;
 }
 //SLIP specific method which begins a transmitted packet
-void SLIPEncodedUSBSerial::beginPacket() { 	serial->write(eot); }
+void SLIPEncodedUSBSerial1::beginPacket() { 	serial->write(eot); }
 
 //signify the end of the packet with an EOT
-void SLIPEncodedUSBSerial::endPacket(){
+void SLIPEncodedUSBSerial1::endPacket(){
 	serial->write(eot);
 #if defined(CORE_TEENSY)
     serial->send_now();
 #endif
 }
 
-void SLIPEncodedUSBSerial::flush(){
+void SLIPEncodedUSBSerial1::flush(){
 	serial->flush();
 }
 #endif
