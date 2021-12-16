@@ -58,22 +58,12 @@ SLIPEncodedUSBSerial1 OSC_SERIAL(SerialUSB1);
 
 void setup() {
 	DBG_SERIAL.begin(115200);
-  while(!DBG_SERIAL)
-    ;
-DBG_SERIAL.println("OSC dynamic test started!");
-  if (CrashReport)
-  {
-    DBG_SERIAL.println(CrashReport);
-    CrashReport.clear();
-  }
-	//HWSERIAL.begin(115200);
-  //HWSERIAL.setTimeout(100);
 
   //-------------------------------
   AudioMemory(50); // no idea what we'll need, so allow plenty
   //-------------------------------
   //testSanitise();
-  listObjects();
+ // listObjects();
 }
 
 OSCBundle* replyStack;
@@ -158,12 +148,15 @@ void sendReply(OSCBundle& reply)
 // work with SLIP-protocol serial port:
 void loop()
 {
+    
+
   OSCBundle bndl;
   OSCBundle reply;
   OSCMessage msg;
   long long tt = 0; //0x4546474841424344; // for debug: ABCDEFGH
   char firstCh = 0;
   int msgLen;
+  
   
   while (!OSC_SERIAL.endofPacket())
   {
@@ -221,4 +214,10 @@ void loop()
     }
   }
   DBG_SERIAL.println();
+
+  if (CrashReport && DBG_SERIAL)
+  {
+    DBG_SERIAL.println(CrashReport);
+    CrashReport.clear();
+  }
 }
