@@ -54,14 +54,26 @@
 
 SLIPEncodedUSBSerial1 OSC_SERIAL(SerialUSB1);
 
-
+const int ledPin = 13;
+int ledState = LOW;             // ledState used to set the LED
+unsigned long previousMillis = 0;        // will store last time LED was updated
+unsigned long currentMillis = 0;
+unsigned long currentInterval = 0;
+unsigned long ledBlinkOnInterval = 100;
+unsigned long ledBlinkOffInterval = 2000;
 
 void setup() {
 	DBG_SERIAL.begin(115200);
-
+    unsigned long ms = millis();
+    while (DBG_SERIAL) { if ((millis() - ms) > 5000) break; }
   //-------------------------------
   AudioMemory(50); // no idea what we'll need, so allow plenty
   //-------------------------------
+  if (CrashReport && DBG_SERIAL)
+  {
+    DBG_SERIAL.println(CrashReport);
+    CrashReport.clear();
+  }
   //testSanitise();
  // listObjects();
 }
@@ -145,12 +157,9 @@ void sendReply(OSCBundle& reply)
   OSC_SERIAL.endPacket();
 }
 
-// work with SLIP-protocol serial port:
-void loop()
+void oscstuff()
 {
-    
-
-  OSCBundle bndl;
+    OSCBundle bndl;
   OSCBundle reply;
   OSCMessage msg;
   long long tt = 0; //0x4546474841424344; // for debug: ABCDEFGH
@@ -215,10 +224,47 @@ void loop()
     }
   }
   DBG_SERIAL.println();
+}
 
-  if (CrashReport && DBG_SERIAL)
-  {
-    DBG_SERIAL.println(CrashReport);
-    CrashReport.clear();
-  }
+void blinkLedTask(void)
+{
+    currentMillis = millis();
+    currentInterval = currentMillis - previousMillis;
+    
+    if (ledState == LOW)
+    {
+        if (currentInterval > ledBlinkOffInterval)
+        {
+            previousMillis = currentMillis;
+            ledState = HIGH;
+            digitalWrite(ledPin, HIGH);
+        }
+    }
+    else
+    {
+        if (currentInterval > ledBlinkOnInterval)
+        {
+            previousMillis = currentMillis;
+            ledState = LOW;
+            digitalWrite(ledPin, LOW);
+        }
+    }
+}
+
+// work with SLIP-protocol serial port:
+void loop()
+{
+    
+  oscstuff();
+  blinkLedTask();
+
+  
+}
+
+void serialEventUSB1() {
+  //Serial.print(lastMSec / 1000.0 );
+  Serial.print("==secs last lps calc USB1::\t");
+  //dualTrigger = 1;
+  //while ( SerialUSB1.available() ) SerialUSB1.print( (char)SerialUSB1.read());
+  //logEvent( 2 );
 }

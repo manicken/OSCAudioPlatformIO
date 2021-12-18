@@ -6,7 +6,7 @@
  */
 //instantiate with the transmission layer
 
-#if (defined(CORE_TEENSY) && (defined(USB_DUAL_SERIAL) || defined(USB_TRIPLE_SERIAL)))
+#if (defined(CORE_TEENSY) && (defined(USB_DUAL_SERIAL) || defined(USB_TRIPLE_SERIAL) || defined(USB_MIDI_SERIAL)))
 
 
 //USB Serials

@@ -10,7 +10,7 @@ Extends the Serial class to encode SLIP over serial
 #include <Stream.h>
 
 
-#if (defined(TEENSYDUINO) && (defined(USB_DUAL_SERIAL) || defined(USB_TRIPLE_SERIAL)))
+#if (defined(TEENSYDUINO) && (defined(USB_DUAL_SERIAL) || defined(USB_TRIPLE_SERIAL) || defined(USB_MIDI_SERIAL)))
 
 
 //import the serial USB object
