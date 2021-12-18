@@ -34,6 +34,7 @@
  */
 
 #include <OSCBundle.h>
+#include <MD_MIDIFile.h>
 
 #include <SLIPEncodedUSBSerial1.h>
 //#include <usb_serial.h>
@@ -41,7 +42,7 @@
 #include <Audio.h>
 #include <Wire.h>
 //#include <SPI.h>
-//#include <SD.h>
+#include <SD.h>
 //#include <SerialFlash.h>
 #define DBG_SERIAL Serial
 
@@ -62,10 +63,14 @@ unsigned long currentInterval = 0;
 unsigned long ledBlinkOnInterval = 100;
 unsigned long ledBlinkOffInterval = 2000;
 
+MD_MIDIFile midiFile;
+
+
 void setup() {
 	DBG_SERIAL.begin(115200);
     unsigned long ms = millis();
-    while (DBG_SERIAL) { if ((millis() - ms) > 5000) break; }
+    while (!DBG_SERIAL) { if ((millis() - ms) > 10000) break; }
+    Serial.println("starting stuff...");
   //-------------------------------
   AudioMemory(50); // no idea what we'll need, so allow plenty
   //-------------------------------
@@ -76,6 +81,14 @@ void setup() {
   }
   //testSanitise();
  // listObjects();
+
+ while (!(SD.begin(BUILTIN_SDCARD))) 
+  {
+      Serial.println("Unable to access the SD card");
+      delay(500);
+  }
+
+  Serial.printf("midi file load: %d", midiFile.load("furelise.mid"));
 }
 
 OSCBundle* replyStack;
