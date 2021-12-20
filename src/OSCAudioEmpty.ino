@@ -34,7 +34,6 @@
  */
 
 #include <OSCBundle.h>
-#include <MD_MIDIFile.h>
 
 #include <SLIPEncodedUSBSerial1.h>
 //#include <usb_serial.h>
@@ -62,8 +61,6 @@ unsigned long currentMillis = 0;
 unsigned long currentInterval = 0;
 unsigned long ledBlinkOnInterval = 100;
 unsigned long ledBlinkOffInterval = 2000;
-
-MD_MIDIFile midiFile;
 
 void printDirectory(File dir, File prevDir);
 void printFiles(File dir);
@@ -95,8 +92,6 @@ void setup() {
   printFiles(root);
   Serial.println("----------------");
   root.close();
-
-  Serial.printf("midi file load: %d", midiFile.load("furelise.mid"));
 }
 void printFiles(File dir) {
 while (true) {
