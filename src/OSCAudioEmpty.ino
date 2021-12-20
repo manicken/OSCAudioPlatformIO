@@ -65,6 +65,8 @@ unsigned long ledBlinkOffInterval = 2000;
 
 MD_MIDIFile midiFile;
 
+void printDirectory(File dir, File prevDir);
+void printFiles(File dir);
 
 void setup() {
 	DBG_SERIAL.begin(115200);
@@ -87,8 +89,55 @@ void setup() {
       Serial.println("Unable to access the SD card");
       delay(500);
   }
+  File root = SD.open("/");
+  
+  Serial.println("----------------\nFiles:");
+  printFiles(root);
+  Serial.println("----------------");
+  root.close();
 
   Serial.printf("midi file load: %d", midiFile.load("furelise.mid"));
+}
+void printFiles(File dir) {
+while (true) {
+    File entry =  dir.openNextFile();
+    if (! entry) {
+      // no more files
+      break;
+    }
+    Serial.print(entry.name());
+    if (entry.isDirectory()) {
+      Serial.println("/");
+    } else {
+      // files have sizes, directories do not
+      Serial.print("\t\t");
+      Serial.println(entry.size(), DEC);
+    }
+    entry.close();
+  }
+}
+
+void printDirectory(File dir, int numTabs) {
+  while (true) {
+    File entry =  dir.openNextFile();
+    if (! entry) {
+      // no more files
+      break;
+    }
+    for (uint8_t i = 0; i < numTabs; i++) {
+      Serial.print('\t');
+    }
+    Serial.print(entry.name());
+    if (entry.isDirectory()) {
+      Serial.println("/");
+      printDirectory(entry, numTabs + 1);
+    } else {
+      // files have sizes, directories do not
+      Serial.print("\t\t");
+      Serial.println(entry.size(), DEC);
+    }
+    entry.close();
+  }
 }
 
 OSCBundle* replyStack;
