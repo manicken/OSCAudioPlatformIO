@@ -33,11 +33,30 @@
 #include <OSCBundle.h>
 #include <Audio.h>
 
-#define DBG_SERIAL Serial
-
 #if defined(SAFE_RELEASE)  // only defined in Dynamic Audio Objects library
 #define DYNAMIC_AUDIO_AVAILABLE
 #endif // defined(SAFE_RELEASE)
+
+#if !defined(COUNT_OF)
+#define COUNT_OF(x) ((sizeof x) / (sizeof x[0]))
+#endif // !defined(COUNT_OF)
+ 
+
+#define noOSC_DEBUG_PRINT
+#if defined(OSC_DEBUG_PRINT)
+#define DEBUG_SER Serial
+#define OSC_SPRT(...) DEBUG_SER.print(__VA_ARGS__)
+#define OSC_SPLN(...) DEBUG_SER.println(__VA_ARGS__)
+#define OSC_SPTF(...) DEBUG_SER.printf(__VA_ARGS__)
+#define OSC_SFSH(...) DEBUG_SER.flush(__VA_ARGS__)
+#define OSC_DBGP(...) dbgPrt(__VA_ARGS__)
+#else
+#define OSC_SPRT(...)
+#define OSC_SPLN(...)
+#define OSC_SPTF(...)
+#define OSC_SFSH(...)
+#define OSC_DBGP(...)
+#endif // defined(OSC_DEBUG_PRINT)
 
 
 class OSCAudioBase
@@ -55,7 +74,7 @@ class OSCAudioBase
     char* name;
     size_t nameLen;
 	AudioStream* sibling;
-	enum error {OK,NOT_FOUND,BLANK_NAME,DUPLICATE_NAME};
+	enum error {OK,NOT_FOUND,BLANK_NAME,DUPLICATE_NAME,NO_DYNAMIC,NO_MEMORY};
 	
 	
 	/**
@@ -84,13 +103,13 @@ class OSCAudioBase
         {
           name[0] = '/'; // for routing
           strcpy(name+1,_name);
-		  //DBG_SERIAL.printf("Created %s at 0x%08X\n",name,(uint32_t) name);
+		  //Serial.printf("Created %s at 0x%08X\n",name,(uint32_t) name);
         }
 		
 		if (NULL != toFree)
 		{
-			//DBG_SERIAL.printf("now free 0x%08X...\n",(uint32_t) toFree);
-			//DBG_SERIAL.flush();
+			//Serial.printf("now free 0x%08X...\n",(uint32_t) toFree);
+			//Serial.flush();
 			free(toFree);
 		}		
       }
@@ -156,12 +175,12 @@ class OSCAudioBase
       msg.getAddress(prt,addressOffset);
 
       if (NULL != name)
-        DBG_SERIAL.println(name);
-      DBG_SERIAL.println(addressOffset);
-      DBG_SERIAL.println(prt);
-      DBG_SERIAL.println(isMine(msg,addressOffset));
-      DBG_SERIAL.println(msg.size());
-      DBG_SERIAL.println();      
+        Serial.println(name);
+      Serial.println(addressOffset);
+      Serial.println(prt);
+      Serial.println(isMine(msg,addressOffset));
+      Serial.println(msg.size());
+      Serial.println();      
     }
 
 	/**

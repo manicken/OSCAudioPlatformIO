@@ -33,12 +33,13 @@ OSCAudioBase* OSCAudioBase::first_route = NULL;
 static void dbgPrt(OSCMessage& msg, int addressOffset)
 {
 	char prt[50];
+	(void) dbgPrt; // avoid warning
 	msg.getAddress(prt,addressOffset);
 
-	DBG_SERIAL.println(addressOffset);
-	DBG_SERIAL.println(prt);
-	DBG_SERIAL.println(msg.size());
-	DBG_SERIAL.println(); 
+	Serial.println(addressOffset);
+	Serial.println(prt);
+	Serial.println(msg.size());
+	Serial.println(); 
 }
 
 
@@ -55,7 +56,7 @@ void OSCAudioBase::renameObject(OSCMessage& msg, int addressOffset, OSCBundle& r
 	OSCAudioBase* pVictim;
 	
 	msg.getString(1,newName,50);
-	//DBG_SERIAL.printf("new name is %s, size %d\n",newName,msg.getDataLength(1));
+	OSC_SPTF("new name is %s, size %d\n",newName,msg.getDataLength(1));
 	trimUnderscores(sanitise(newName,newName),newName); // make the new name valid
 	pVictim = OSCAudioBase::find(newName);
 	if (NULL == pVictim) // we're not duplicating the name of another object: good
@@ -188,19 +189,19 @@ OSCMessage& OSCAudioBase::prepareReplyResult(OSCMessage& msg, 	//!< the received
 {
 	char buf[50];
 	msg.getAddress(buf);
-	DBG_SERIAL.printf("%s executed %s; result was ",name+1,buf);
+	OSC_SPTF("%s executed %s; result was ",name+1,buf);
 	
 	return staticPrepareReplyResult(msg,reply).add(name+1); // add which element caught the routed message
 }
 
 
 // Despatch function overloaded with the various reply types we might append to the standard information
-void OSCAudioBase::addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, bool v) { prepareReplyResult(msg, reply).add(v); DBG_SERIAL.println(v); }
-void OSCAudioBase::addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, float v) { prepareReplyResult(msg, reply).add(v); DBG_SERIAL.println(v); }
-void OSCAudioBase::addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, int32_t v) { prepareReplyResult(msg, reply).add(v); DBG_SERIAL.println(v); }
-void OSCAudioBase::addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, uint32_t v) { prepareReplyResult(msg, reply).add((unsigned int)v); DBG_SERIAL.println(v); }
-void OSCAudioBase::addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, uint8_t v) { prepareReplyResult(msg, reply).add(v); DBG_SERIAL.println(v); }
-void OSCAudioBase::addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, uint16_t v) { prepareReplyResult(msg, reply).add(v); DBG_SERIAL.println(v); }
+void OSCAudioBase::addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, bool v) { prepareReplyResult(msg, reply).add(v); Serial.println(v); }
+void OSCAudioBase::addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, float v) { prepareReplyResult(msg, reply).add(v); Serial.println(v); }
+void OSCAudioBase::addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, int32_t v) { prepareReplyResult(msg, reply).add(v); Serial.println(v); }
+void OSCAudioBase::addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, uint32_t v) { prepareReplyResult(msg, reply).add((unsigned int)v); Serial.println(v); }
+void OSCAudioBase::addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, uint8_t v) { prepareReplyResult(msg, reply).add(v); Serial.println(v); }
+void OSCAudioBase::addReplyResult(OSCMessage& msg, int addressOffset, OSCBundle& reply, uint16_t v) { prepareReplyResult(msg, reply).add(v); Serial.println(v); }
 
 
 
@@ -232,18 +233,18 @@ void OSCAudioBase::destroyObject(OSCMessage& msg, int addressOffset, OSCBundle& 
 	msg.getString(0,buf,50);
 	trimUnderscores(sanitise(buf,buf),buf); // make the name valid
 	
-	DBG_SERIAL.print("destroyObject: ");
-	DBG_SERIAL.println(buf);
-	dbgPrt(msg,addressOffset);
+	OSC_SPRT("destroyObject: ");
+	OSC_SPLN(buf);
+	OSC_DBGP(msg,addressOffset); 
 		
 	pVictim = OSCAudioBase::find(buf);
-	DBG_SERIAL.printf("Victim is at: 0x%08X\n",(uint32_t) pVictim);
-	DBG_SERIAL.flush();
+	OSC_SPTF("Victim is at: 0x%08X\n",(uint32_t) pVictim);
+	OSC_SFSH();
 	if (NULL != pVictim)
 		delete pVictim;
 	else
 	{
-		DBG_SERIAL.println("not found!"); // but not really an error!
+		OSC_SPLN("not found!"); // but not really an error!
 	}
 	
 	staticPrepareReplyResult(msg,reply).add(buf).add((int) OK);
@@ -255,44 +256,52 @@ void OSCAudioBase::destroyObject(OSCMessage& msg, int addressOffset, OSCBundle& 
  */
 void OSCAudioBase::clearAllObjects(OSCMessage& msg, int addressOffset, OSCBundle& reply)
 {
-	DBG_SERIAL.print("clearAllObjects: ");
-	dbgPrt(msg,addressOffset);
+	OSC_SPRT("clearAllObjects: ");
+	OSC_DBGP(msg,addressOffset);
 	
 	while (NULL != first_route)
 	{
-		DBG_SERIAL.println(first_route->name);
-		DBG_SERIAL.flush();
+		OSC_SPLN(first_route->name);
+		OSC_SFSH();
 		delete first_route;
 	}
 	staticPrepareReplyResult(msg,reply).add("ALL").add((int) OK);
 }
 
 //============================== OSCAudioStream =========================================================
+//-------------------------------------------------------------------------------------------------------
+// Test code for switching between full dynamic audio support and simple control
+// messaging. If full support is enabled then the object code is MUCH larger, but
+// it is possible to create objects at runtime.
+#define noDISABLE_FULL_DYNAMIC
+#if defined(DISABLE_FULL_DYNAMIC)
+// weak definition
+OSCAudioBase::error DynamicAudioCreateObject(char* typ,char* objName) __attribute__((weak));
+OSCAudioBase::error DynamicAudioCreateObject(char* typ,char* objName)
+{
+	return OSCAudioBase::NO_DYNAMIC;
+}
+
+#else
+// strong definition: use this if object creation at runtime is wanted
 /**
  *	Create a new [OSC]AudioStream object.
  */
-void OSCAudioBase::createObject(OSCMessage& msg, int addressOffset, OSCBundle& reply)
+OSCAudioBase::error DynamicAudioCreateObject(char* typ,char* objName)
 {
-	error retval = OK;
-	char objName[50],typ[50];
+	OSCAudioBase::error retval = OSCAudioBase::OK;
 	void* pNewObj = NULL;
-	msg.getString(0,typ,50);
-	msg.getString(1,objName,50);
-	trimUnderscores(sanitise(objName,objName),objName); // make the name valid
-	
-	DBG_SERIAL.printf("createObject(%s,%s)\n",typ,objName);
-	dbgPrt(msg,addressOffset);
 	
 	if (0 == strlen(objName)) 		 
 	{
-		retval = BLANK_NAME;
-		DBG_SERIAL.println("blank name"); // don't allow blank name
+		retval = OSCAudioBase::BLANK_NAME;
+		OSC_SPLN("blank name"); // don't allow blank name
 	}
 	else 
-		if (NULL != find(objName))
+		if (NULL != OSCAudioBase::find(objName))
 		{
-			retval = DUPLICATE_NAME;
-			DBG_SERIAL.println("duplicate");  // don't allow duplicate name
+			retval = OSCAudioBase::DUPLICATE_NAME;
+			OSC_SPLN("duplicate");  // don't allow duplicate name
 		}
 #define OSC_CLASS(a,o) else if (0 == strcmp(#a,typ)) pNewObj = new o(objName);
 	OSC_AUDIO_CLASSES // massive inefficient macro expansion to create object of required type
@@ -300,11 +309,34 @@ void OSCAudioBase::createObject(OSCMessage& msg, int addressOffset, OSCBundle& r
 	
 	if (NULL != pNewObj)
 	{
-		DBG_SERIAL.printf("Created %s as a new %s at %08X\n",objName, typ, (uint32_t) pNewObj);
+		OSC_SPTF("Created %s as a new %s at %08X\n",objName, typ, (uint32_t) pNewObj);
 	}
+	
+	return retval;
+}
+#endif // defined(DISABLE_FULL_DYNAMIC)
+//-------------------------------------------------------------------------------------------------------
+
+
+/**
+ *	Create a new [OSC]AudioStream object.
+ */
+void OSCAudioBase::createObject(OSCMessage& msg, int addressOffset, OSCBundle& reply)
+{
+	error retval = OK;
+	char objName[50],typ[50];
+	msg.getString(0,typ,50);
+	msg.getString(1,objName,50);
+	trimUnderscores(sanitise(objName,objName),objName); // make the name valid
+	
+	OSC_SPTF("createObject(%s,%s)\n",typ,objName);
+	OSC_DBGP(msg,addressOffset);
+	
+	retval = DynamicAudioCreateObject(typ,objName);
 		
 	staticPrepareReplyResult(msg,reply).add(objName).add((int) retval);
 }
+
 
 //============================== OSCAudioConnection =====================================================
 /**
@@ -315,11 +347,11 @@ void OSCAudioBase::createConnection(OSCMessage& msg, int addressOffset, OSCBundl
 	char buf[50];
 	error retval = OK;
 	
-	DBG_SERIAL.println("createConnection");
-	dbgPrt(msg,addressOffset);
+	OSC_SPLN("createConnection");
+	OSC_DBGP(msg,addressOffset);
 	msg.getString(0,buf,50);
 	trimUnderscores(sanitise(buf,buf),buf); // make the name valid
-	DBG_SERIAL.println(buf);
+	OSC_SPLN(buf);
 	
 	if (0 != strlen(buf))
 	{
@@ -331,7 +363,7 @@ void OSCAudioBase::createConnection(OSCMessage& msg, int addressOffset, OSCBundl
 		{
 			OSCAudioConnection* pNewConn = new OSCAudioConnection(buf);
 			(void) pNewConn;
-			DBG_SERIAL.printf("Created at: 0x%08X\n",(uint32_t) pNewConn);
+			OSC_SPTF("Created at: 0x%08X\n",(uint32_t) pNewConn);
 		}
 	}
 	else
@@ -355,8 +387,8 @@ void OSCAudioConnection::OSCconnect(OSCMessage& msg,
 	OSCAudioBase* tmp;
 	error retval = OK;
 	
-	DBG_SERIAL.println("makeConnection");
-	dbgPrt(msg,addressOffset);
+	OSC_SPLN("makeConnection");
+	OSC_DBGP(msg,addressOffset);
 	
 	msg.getString(0,srcn,50);
 	trimUnderscores(sanitise(srcn,srcn),srcn); // make the source name valid
@@ -385,7 +417,7 @@ void OSCAudioConnection::OSCconnect(OSCMessage& msg,
 		sprintf(buf,"Nothing!");
 		retval = NOT_FOUND;
 	}
-	DBG_SERIAL.println(buf);
+	OSC_SPLN(buf);
 	
 	prepareReplyResult(msg,reply).set(1,buf).add((int) retval);
 }
