@@ -209,11 +209,13 @@ void saveFS(OSCMessage& msg, int addressOffset)
       idx += got;
     }
     saveFile.close();
+    repl.add(fn);
     repl.add("saved");
     Serial.printf(" (length %d) to %s\n",msg.getBlobLength(1),fn); Serial.flush();
   }
   else
   {
+      repl.add(fn);
     retval = OSCAudioBase::NOT_FOUND;
     repl.add("failed");
   }    
@@ -244,6 +246,7 @@ void sendFS(OSCMessage& msg, int addressOffset)
     if (NULL != (buf = (uint8_t*) malloc(remain+1)))
     {
       sendFile.read(buf,remain);
+      repl.add(fn);
       repl.add(buf,remain); 
       buf[remain] = 0;
       //Serial.println((char*) buf);
@@ -253,6 +256,7 @@ void sendFS(OSCMessage& msg, int addressOffset)
     }
     else
     {
+        repl.add(fn);
       retval = OSCAudioBase::NO_MEMORY;
       repl.add("failed");
     }
@@ -260,10 +264,60 @@ void sendFS(OSCMessage& msg, int addressOffset)
   }
   else
   {
+      repl.add(fn);
     retval = OSCAudioBase::NOT_FOUND;
     repl.add("failed");
   }  
   repl.add(retval);
+}
+
+void listFiles(OSCMessage& msg, int addressOffset)
+{
+    char fn[50];
+    uint8_t* buf;
+    int remain;
+    bool success = false;
+    OSCAudioBase::error retval = OSCAudioBase::OK;
+    OSCMessage& repl = OSCAudioBase::staticPrepareReplyResult(msg,*replyStack);
+    File dir;
+    
+    msg.getString(0,fn,50);
+    dir = SD.open(fn);
+    if (dir)
+    {
+        char *intStr = (char*)malloc(21); // to store file sizes (uint64 is 20 digits long) don't think we really need that as it's 18exabytes
+        repl.add(fn);
+        while (true)
+        {
+            File entry =  dir.openNextFile();
+            if (! entry)
+            {
+                // no more files
+                break;
+            }
+            if (entry.isDirectory())
+            {
+                repl.add("dir");
+            }
+            else
+            {
+                // files have sizes, directories do not
+                repl.add("file");
+                itoa(entry.size(),intStr,10);
+                repl.add(intStr);
+            }
+            repl.add(entry.name());
+            entry.close();
+        }
+        free(intStr);
+    }
+    else
+    {
+        repl.add(fn);
+        retval = OSCAudioBase::NOT_FOUND;
+        repl.add("failed");
+    }  
+    repl.add(retval);
 }
 
 
@@ -278,10 +332,15 @@ void deleteFS(OSCMessage& msg, int addressOffset)
   
   Serial.print("Delete ");
 
-  if (true == (success = SD.remove(fn)))
+  if (true == (success = SD.remove(fn))) {
     repl.add(fn); 
-  else
-    repl.add("failed");
+    repl.add("removed");
+  }
+  else {
+      repl.add(fn);
+      repl.add("failed");
+  }
+    
   
   repl.add(success
             ?OSCAudioBase::OK
@@ -335,6 +394,7 @@ void loadFS(OSCMessage& msg, int addressOffset)
     }
     else
     {
+        repl.add(fn);
       retval = OSCAudioBase::NO_MEMORY;
       repl.add("failed");
     }
@@ -342,6 +402,7 @@ void loadFS(OSCMessage& msg, int addressOffset)
   }
   else
   {
+      repl.add(fn);
     retval = OSCAudioBase::NOT_FOUND;
     repl.add("failed");
   }
@@ -373,6 +434,8 @@ void routeFS(OSCMessage& msg, int addressOffset)
     loadFS(msg,addressOffset);
   else if (OSCAudioBase::isStaticTarget(msg,addressOffset,"/delete","s"))
     deleteFS(msg,addressOffset);
+  else if (OSCAudioBase::isStaticTarget(msg,addressOffset,"/list","s"))
+    listFiles(msg,addressOffset);
 }
 
 
