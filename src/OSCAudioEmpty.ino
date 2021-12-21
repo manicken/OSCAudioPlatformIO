@@ -271,6 +271,18 @@ void sendFS(OSCMessage& msg, int addressOffset)
   repl.add(retval);
 }
 
+void test(OSCMessage& msg, int addressOffset)
+{
+    char fn[50];
+    uint8_t* buf;
+    int remain;
+    bool success = false;
+    OSCAudioBase::error retval = OSCAudioBase::OK;
+    OSCMessage& repl = OSCAudioBase::staticPrepareReplyResult(msg,*replyStack);
+    uint8_t testDataSeq[] = {'H','e','l','l','o',0xC0,'w','o','r','l','d'};
+    repl.add(testDataSeq, 11);
+    repl.add(retval);
+}
 void listFiles(OSCMessage& msg, int addressOffset)
 {
     char fn[50];
@@ -436,6 +448,8 @@ void routeFS(OSCMessage& msg, int addressOffset)
     deleteFS(msg,addressOffset);
   else if (OSCAudioBase::isStaticTarget(msg,addressOffset,"/list","s"))
     listFiles(msg,addressOffset);
+  else if (OSCAudioBase::isStaticTarget(msg,addressOffset,"/test","s"))
+    test(msg,addressOffset);
 }
 
 
@@ -494,7 +508,7 @@ void sendReply(OSCBundle& reply)
 
   // for real!
   OSC_SERIAL.beginPacket();
-  reply.send(SerialUSB1); 
+  reply.send(OSC_SERIAL); 
   OSC_SERIAL.endPacket();
 }
 
