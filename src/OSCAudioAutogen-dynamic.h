@@ -948,7 +948,7 @@ class OSCAudioMixer4 : public AudioMixer4, OSCAudioBase
 class OSCAudioMixerX : public AudioMixerX, OSCAudioBase
 {
     public:
-        OSCAudioMixerX(const char* _name,unsigned char ninputs, audio_block_t **iqueue) :  OSCAudioBase(_name, (AudioStream*) this), AudioMixerX(ninputs, iqueue) {}
+        OSCAudioMixerX(const char* _name,unsigned char ninputs/*, audio_block_t **iqueue*/) :  OSCAudioBase(_name, (AudioStream*) this), AudioMixerX(ninputs/*, iqueue*/) {}
 
         void route(OSCMessage& msg, int addressOffset, OSCBundle& reply)
         {

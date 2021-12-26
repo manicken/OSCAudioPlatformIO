@@ -34,8 +34,8 @@ class AudioMixerX : public AudioStream
 {
 #if defined(__ARM_ARCH_7EM__)
 public:
-	AudioMixerX(unsigned char ninputs, audio_block_t **iqueue) : AudioStream(ninputs, iqueue),
-    inputQueueArray(iqueue), _ninputs(ninputs)
+	AudioMixerX(unsigned char ninputs/*, audio_block_t **iqueue*/) : AudioStream(ninputs, new audio_block_t*[ninputs]),
+    /*inputQueueArray(iqueue), */_ninputs(ninputs)
     {
         Serial.printf("\n\nninputs = %d\n\n", _ninputs);
         multiplier = (int32_t*)malloc(_ninputs);
@@ -43,11 +43,11 @@ public:
 	}
     ~AudioMixerX()
     {
-        Serial.println("freeing multipler!");
-        free(multiplier);
-        Serial.println("freeing inputQueueArray!");
-        delete inputQueueArray;
-        Serial.println("freeing inputQueueArray done!");
+        //Serial.println("freeing multipler!");
+        //free(multiplier);
+        //Serial.println("freeing inputQueueArray!");
+        //delete inputQueueArray;
+        //Serial.println("freeing inputQueueArray done!");
     }
 	virtual void update(void);
 	void gain(unsigned int channel, float gain) {
@@ -59,7 +59,7 @@ public:
 private:
     unsigned char _ninputs;
 	int32_t *multiplier;
-	audio_block_t **inputQueueArray;
+	/*audio_block_t **inputQueueArray;*/
 
 #elif defined(KINETISL)
 public:

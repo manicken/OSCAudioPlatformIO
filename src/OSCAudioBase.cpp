@@ -314,14 +314,14 @@ OSCAudioBase::error DynamicAudioCreateObject(char* typ,char* objName, OSCMessage
             if (NULL != ninputs)
             {
                 // do this malloc "outside" to check for available memory 
-                audio_block_t **amxInputs = (audio_block_t **)malloc(ninputs);
-                if (NULL != amxInputs) {
-                    pNewObj = new OSCAudioMixerX(objName, ninputs, amxInputs); 
-                }
+                //audio_block_t **amxInputs = (audio_block_t **)malloc(ninputs);
+                //if (NULL != amxInputs) {
+                    pNewObj = new OSCAudioMixerX(objName, ninputs/*, amxInputs*/); 
+               /* }
                 else {
                     OSC_SPLN("out of memory");
                     retval = OSCAudioBase::NO_MEMORY;
-                }
+                }*/
             }
             else
             {
