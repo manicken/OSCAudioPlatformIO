@@ -941,6 +941,23 @@ class OSCAudioMixer4 : public AudioMixer4, OSCAudioBase
           }
         }
 };
+
+#include "DynMixer.h"
+
+// ============== AudioMixer4 ====================
+class OSCAudioMixerX : public AudioMixerX, OSCAudioBase
+{
+    public:
+        OSCAudioMixerX(const char* _name,unsigned char ninputs, audio_block_t **iqueue) :  OSCAudioBase(_name, (AudioStream*) this), AudioMixerX(ninputs, iqueue) {}
+
+        void route(OSCMessage& msg, int addressOffset, OSCBundle& reply)
+        {
+          if (isMine(msg,addressOffset))
+          { 
+            if (isTarget(msg,addressOffset,"/g*","if")) {gain(msg.getInt(0),msg.getFloat(1)); addReplyExecuted(msg,addressOffset,reply);} // void gain(unsigned int channel, float gain) {
+          }
+        }
+};
 /*
 // ============== AudioOutputADAT ====================
 class OSCAudioOutputADAT : public AudioOutputADAT, OSCAudioBase

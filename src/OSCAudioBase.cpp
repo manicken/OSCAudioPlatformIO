@@ -216,6 +216,7 @@ void OSCAudioBase::routeDynamic(OSCMessage& msg, int addressOffset, OSCBundle& r
 #if defined(DYNAMIC_AUDIO_AVAILABLE)
     else if (isStaticTarget(msg,addressOffset,"/cr*C*","s"))  {createConnection(msg,addressOffset,reply);} 
     else if (isStaticTarget(msg,addressOffset,"/cr*O*","ss")) {createObject(msg,addressOffset,reply);} 
+    else if (isStaticTarget(msg,addressOffset,"/cr*O*","ssi")) {createObject(msg,addressOffset,reply);} 
     else if (isStaticTarget(msg,addressOffset,"/d*","s"))     {destroyObject(msg,addressOffset,reply);} 
     else if (isStaticTarget(msg,addressOffset,"/clearAl*",NULL))    {clearAllObjects(msg,addressOffset,reply);} 
 #endif // defined(DYNAMIC_AUDIO_AVAILABLE)
@@ -287,7 +288,7 @@ OSCAudioBase::error DynamicAudioCreateObject(char* typ,char* objName)
 /**
  *	Create a new [OSC]AudioStream object.
  */
-OSCAudioBase::error DynamicAudioCreateObject(char* typ,char* objName)
+OSCAudioBase::error DynamicAudioCreateObject(char* typ,char* objName, OSCMessage& msg)
 {
 	OSCAudioBase::error retval = OSCAudioBase::OK;
 	void* pNewObj = NULL;
@@ -306,6 +307,34 @@ OSCAudioBase::error DynamicAudioCreateObject(char* typ,char* objName)
 #define OSC_CLASS(a,o) else if (0 == strcmp(#a,typ)) pNewObj = new o(objName);
 	OSC_AUDIO_CLASSES // massive inefficient macro expansion to create object of required type
 #undef OSC_CLASS
+        else if (0 == strcmp("AudioMixer",typ))
+        {
+            OSC_SPLN("try create AudioMixer");
+            uint32_t ninputs = msg.getInt(2);
+            if (NULL != ninputs)
+            {
+                // do this malloc "outside" to check for available memory 
+                audio_block_t **amxInputs = (audio_block_t **)malloc(ninputs);
+                if (NULL != amxInputs) {
+                    pNewObj = new OSCAudioMixerX(objName, ninputs, amxInputs); 
+                }
+                else {
+                    OSC_SPLN("out of memory");
+                    retval = OSCAudioBase::NO_MEMORY;
+                }
+            }
+            else
+            {
+                OSC_SPLN("AudioMixer missing ninputs parameter");
+                retval = OSCAudioBase::PARAM_ERROR;
+            }
+            
+        }
+        else
+        {
+            OSC_SPTF("type not found %s\n",typ);
+            retval = OSCAudioBase::TYPE_ERROR;
+        }
 	
 	if (NULL != pNewObj)
 	{
@@ -332,7 +361,7 @@ void OSCAudioBase::createObject(OSCMessage& msg, int addressOffset, OSCBundle& r
 	OSC_SPTF("createObject(%s,%s)\n",typ,objName);
 	OSC_DBGP(msg,addressOffset);
 	
-	retval = DynamicAudioCreateObject(typ,objName);
+	retval = DynamicAudioCreateObject(typ,objName,msg);
 		
 	staticPrepareReplyResult(msg,reply).add(objName).add((int) retval);
 }

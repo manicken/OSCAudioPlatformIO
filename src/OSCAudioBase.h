@@ -74,7 +74,7 @@ class OSCAudioBase
     char* name;
     size_t nameLen;
 	AudioStream* sibling;
-	enum error {OK,NOT_FOUND,BLANK_NAME,DUPLICATE_NAME,NO_DYNAMIC,NO_MEMORY};
+	enum error {OK,NOT_FOUND,BLANK_NAME,DUPLICATE_NAME,NO_DYNAMIC,NO_MEMORY,PARAM_ERROR,TYPE_ERROR};
 	
 	
 	/**

@@ -34,6 +34,7 @@
  */
 
 #include <OSCBundle.h>
+//#include "DynMixer.h"
 
 #include <SLIPEncodedUSBSerial1.h>
 //#include <usb_serial.h>
@@ -64,6 +65,7 @@ unsigned long ledBlinkOffInterval = 2000;
 
 void printDirectory(File dir, File prevDir);
 void printFiles(File dir);
+void createAudioMixerX(unsigned char ninputs);
 
 void setup() {
 	DBG_SERIAL.begin(115200);
@@ -92,7 +94,24 @@ void setup() {
   printFiles(root);
   Serial.println("----------------");
   root.close();
+
+  //createAudioMixerX(16);
 }
+/*
+void createAudioMixerX(unsigned char ninputs)
+{
+    // do this malloc "outside" to check for available memory 
+    audio_block_t **amxInputs = (audio_block_t **)malloc(ninputs);
+    if (amxInputs == NULL) {
+        Serial.print("out of memory");
+    }
+    Serial.println("malloc ok");
+    AudioMixerX *amx = new AudioMixerX(ninputs, amxInputs);
+    Serial.println("DynMixer created!");
+    delete amx;
+    Serial.println("DynMixer destroyed!");
+}
+*/
 void printFiles(File dir) {
 while (true) {
     File entry =  dir.openNextFile();
