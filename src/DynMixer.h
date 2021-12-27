@@ -34,10 +34,10 @@ class AudioMixerX : public AudioStream
 {
 #if defined(__ARM_ARCH_7EM__)
 public:
-	AudioMixerX(unsigned char ninputs/*, audio_block_t **iqueue*/) : AudioStream(ninputs, new audio_block_t*[ninputs]),
-    /*inputQueueArray(iqueue), */_ninputs(ninputs)
+	AudioMixerX(unsigned char ninputs, audio_block_t **iqueue) : AudioStream(ninputs, iqueue),
+    inputQueueArray(iqueue), _ninputs(ninputs)
     {
-        Serial.printf("\n\nninputs = %d\n\n", _ninputs);
+        Serial.printf("\ninside ninputs = %d @ %08X\n\n", _ninputs, iqueue);
         multiplier = (int32_t*)malloc(_ninputs);
 		for (int i=0; i<_ninputs; i++) multiplier[i] = 65536;
 	}
@@ -59,7 +59,8 @@ public:
 private:
     unsigned char _ninputs;
 	int32_t *multiplier;
-	/*audio_block_t **inputQueueArray;*/
+    //audio_block_t *toBeIgnored[1];
+	audio_block_t **inputQueueArray;
 
 #elif defined(KINETISL)
 public:
