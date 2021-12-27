@@ -111,22 +111,20 @@ void AudioMixerX::update(void)
 	unsigned int channel;
 
 	for (channel=0; channel < _ninputs; channel++) {
-		if (!out) {
-			out = receiveWritable(channel);
-			if (out) {
-				int32_t mult = multiplier[channel];
-				if (mult != MULTI_UNITYGAIN) applyGain(out->data, mult);
-			}
-		} else {
+		if (NULL != out) {
 			in = receiveReadOnly(channel);
-			if (in) {
-				applyGainThenAdd(out->data, in->data, multiplier[channel]);
-				release(in);
-			}
+			if (in == NULL) continue;
+            applyGainThenAdd(out->data, in->data, multiplier[channel]);
+			release(in);
+		} else {
+            out = receiveWritable(channel);
+            if (NULL == out) continue;
+            int32_t mult = multiplier[channel];
+			if (mult == MULTI_UNITYGAIN) continue;
+            applyGain(out->data, mult);
 		}
 	}
-	if (out) {
-		transmit(out);
-		release(out);
-	}
+	if (NULL == out) return;
+    transmit(out);
+	release(out);
 }

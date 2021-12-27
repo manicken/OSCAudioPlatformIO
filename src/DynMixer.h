@@ -37,17 +37,17 @@ public:
 	AudioMixerX(unsigned char ninputs, audio_block_t **iqueue) : AudioStream(ninputs, iqueue),
     inputQueueArray(iqueue), _ninputs(ninputs)
     {
-        Serial.printf("\ninside ninputs = %d @ %08X\n\n", _ninputs, iqueue);
+        //Serial.printf("\nninputs = %d %d\n\n", _ninputs, sizeof(this));
         multiplier = (int32_t*)malloc(_ninputs*4);
 		for (int i=0; i<_ninputs; i++) multiplier[i] = 65536;
 	}
     ~AudioMixerX()
     {
-        Serial.println("freeing multipler!");
+        //Serial.println("freeing multipler!");
         free(multiplier);
-        Serial.println("freeing inputQueueArray!");
+        //Serial.println("freeing inputQueueArray!");
         free(inputQueueArray);
-        Serial.println("freeing inputQueueArray done!");
+        //Serial.println("freeing all done!");
     }
 	virtual void update(void);
 	void gain(unsigned int channel, float gain) {
