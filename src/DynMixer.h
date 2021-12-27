@@ -38,16 +38,16 @@ public:
     inputQueueArray(iqueue), _ninputs(ninputs)
     {
         Serial.printf("\ninside ninputs = %d @ %08X\n\n", _ninputs, iqueue);
-        multiplier = (int32_t*)malloc(_ninputs);
+        multiplier = (int32_t*)malloc(_ninputs*4);
 		for (int i=0; i<_ninputs; i++) multiplier[i] = 65536;
 	}
     ~AudioMixerX()
     {
-        //Serial.println("freeing multipler!");
-        //free(multiplier);
-        //Serial.println("freeing inputQueueArray!");
-        //delete inputQueueArray;
-        //Serial.println("freeing inputQueueArray done!");
+        Serial.println("freeing multipler!");
+        free(multiplier);
+        Serial.println("freeing inputQueueArray!");
+        free(inputQueueArray);
+        Serial.println("freeing inputQueueArray done!");
     }
 	virtual void update(void);
 	void gain(unsigned int channel, float gain) {

@@ -314,7 +314,7 @@ OSCAudioBase::error DynamicAudioCreateObject(char* typ,char* objName, OSCMessage
             if (NULL != ninputs)
             {
                 // do this malloc "outside" to check for available memory 
-                audio_block_t **amxInputs = (audio_block_t **)malloc(ninputs);
+                audio_block_t **amxInputs = (audio_block_t **)malloc(ninputs*sizeof(audio_block_t **));
                 Serial.printf("\noutside ninputs = %d @ %08X\n\n", ninputs, amxInputs);
                 if (NULL != amxInputs) {
                     pNewObj = new OSCAudioMixerX(objName, ninputs, amxInputs); 
