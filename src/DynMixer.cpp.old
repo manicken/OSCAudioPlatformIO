@@ -105,21 +105,40 @@ static void applyGainThenAdd(int16_t *dst, const int16_t *src, int32_t mult)
 
 #endif
 
-void AudioMixerX::update(void)
+void AudioMixer::update(void)
 {
 	audio_block_t *in, *out=NULL;
 	unsigned int channel;
 
 	for (channel=0; channel < _ninputs; channel++) {
+		
+		if (currentMultiplier[channel] != multiplier[channel])
+		{
+			if (currentMultiplier[channel] < multiplier[channel])
+			{
+				currentMultiplier[channel] += multUpdateRate; 
+				// overflow check
+				if (currentMultiplier[channel] > multiplier[channel])
+					currentMultiplier[channel] = multiplier[channel]; // stop here
+			}
+			else /*if (currentMultiplier[channel] > multiplier[channel])*/
+			{
+				currentMultiplier[channel] -= multUpdateRate;
+				// underflow check
+				if (currentMultiplier[channel] < multiplier[channel])
+					currentMultiplier[channel] = multiplier[channel]; // stop here
+			}
+		}
+		
 		if (NULL != out) {
 			in = receiveReadOnly(channel);
 			if (in == NULL) continue;
-            applyGainThenAdd(out->data, in->data, multiplier[channel]);
+            applyGainThenAdd(out->data, in->data, currentMultiplier[channel]);
 			release(in);
 		} else {
             out = receiveWritable(channel);
             if (NULL == out) continue;
-            int32_t mult = multiplier[channel];
+            int32_t mult = currentMultiplier[channel];
 			if (mult == MULTI_UNITYGAIN) continue;
             applyGain(out->data, mult);
 		}

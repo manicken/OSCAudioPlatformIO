@@ -48,7 +48,6 @@ int osc_match(const char *pattern, const char *address, int *pattern_offset, int
 	*address_offset = 0;
 	
 	while(*address != '\0' && *pattern != '\0'){
-
 		if(*pattern == '*'){
 			if(!osc_match_star(pattern, address)){
 				return 0;
