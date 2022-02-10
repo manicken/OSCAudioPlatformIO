@@ -97,6 +97,15 @@ void setup() {
 
   buildSynth();
   //testSynth();
+  AudioSynthWaveform LFO;
+  AudioSynthWaveformModulated wfm1;
+  AudioSynthWaveformModulated wfm2;
+  AudioSynthWaveformModulated wfm3;
+
+  audio_destination dests[3] = {{wfm1,0}, {wfm2,0}, {wfm3,0}};
+  Serial.printf("sizeof(dests) %d", sizeof(dests)/sizeof(audio_destination));
+  AudioConnection *ac = new AudioConnection(LFO, 0, dests, sizeof(dests)/sizeof(audio_destination));
+  //AudioConnection *ac = new AudioConnection(LFO, 0, new audio_destination[3]{{wfm1,0}, {wfm2,0}, {wfm3,0}}, 3);
 }
 
 
@@ -324,7 +333,7 @@ void updateOSC()
       break;
   }
 }
-
+void blinkLedTask(void);
 //-----------------------------------------------------------------------------------------------------------------
 // Simplified loop: co-operative multi-tasking, sort of
 void loop(void)
@@ -332,4 +341,38 @@ void loop(void)
   updateOSC();
   updateMIDI();  
   updateSubscribe();
+  blinkLedTask();
+}
+
+const int ledPin = 13;
+int ledState = LOW;             // ledState used to set the LED
+unsigned long previousMillis = 0;        // will store last time LED was updated
+unsigned long currentMillis = 0;
+unsigned long currentInterval = 0;
+unsigned long ledBlinkOnInterval = 100;
+unsigned long ledBlinkOffInterval = 2000;
+
+void blinkLedTask(void)
+{
+    currentMillis = millis();
+    currentInterval = currentMillis - previousMillis;
+    
+    if (ledState == LOW)
+    {
+        if (currentInterval > ledBlinkOffInterval)
+        {
+            previousMillis = currentMillis;
+            ledState = HIGH;
+            digitalWrite(ledPin, HIGH);
+        }
+    }
+    else
+    {
+        if (currentInterval > ledBlinkOnInterval)
+        {
+            previousMillis = currentMillis;
+            ledState = LOW;
+            digitalWrite(ledPin, LOW);
+        }
+    }
 }
