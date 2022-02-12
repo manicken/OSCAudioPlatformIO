@@ -46,6 +46,7 @@
 
 //#include "dynamic-util.h"
 #include "OSCAudioBase.h"
+#include <usb_serial.h>
 
 bool list_enable = false;
 void listObjects(void) {listObjects(list_enable);}
@@ -55,12 +56,13 @@ void listObjects(void) {listObjects(list_enable);}
 // set this to the USB serial port you wish to use
 // SLIPEncodedUSBSerial edited to allow and force 
 // use of second USB serial port
-/*
+
 #define USBSERIALPORT SerialUSB1
+#include <SLIPEncodedTemplateSerial.h>
 #include <SLIPEncodedUSBSerial.h>
 SLIPEncodedUSBSerial HWSERIAL(USBSERIALPORT);
-*/
-#include <SLIPEncodedTemplateSerial.h>
+
+
 SLIPEncodedUSBSerial<usb_serial2_class> HWSERIAL(SerialUSB1);
 #else
 // set this to the hardware serial port you wish to use
@@ -69,6 +71,30 @@ SLIPEncodedUSBSerial<usb_serial2_class> HWSERIAL(SerialUSB1);
 SLIPEncodedSerial HWSERIAL(HWSERIALPORT);
 #endif // defined(OSC_USE_USB_SERIAL)
 
+#include "AudioConnectionExt.h"
+//#include "AudioConnectionExt2.h" just to test nested classes to solve a problem
+
+class StereoVoice {
+public:
+    AudioSynthWaveformModulated wav1;
+    AudioSynthWaveformModulated wav2;
+
+
+    audio_connection LFOIn1_dests[2] = {{wav1,0}, {wav2,0}};
+    AudioHalfConnection::MultDest &LFOIn1 = *new AudioHalfConnection::MultDest(LFOIn1_dests, sizeof(LFOIn1_dests)/sizeof(audio_connection));
+	audio_connection LFOIn2_dests[2] = {{wav1,1}, {wav2,1}};
+    AudioHalfConnection::MultDest &LFOIn2 = *new AudioHalfConnection::MultDest(LFOIn2_dests, sizeof(LFOIn2_dests)/sizeof(audio_connection));
+
+    AudioHalfConnection &stereoOutL = *new AudioHalfConnection(0,wav1,0);
+    AudioHalfConnection &stereoOutR = *new AudioHalfConnection(0,wav2,0);
+
+    AudioHalfConnection &stereoOutLR_1 = *new AudioHalfConnection(0,wav1,0);
+    AudioHalfConnection &stereoOutLR_2 = *new AudioHalfConnection(0,wav2,0);
+
+    StereoVoice() {
+
+    }
+};
 //-----------------------------------------------------------------------------------------------------------------
 void setup() {
 	Serial.begin(115200); 
@@ -97,15 +123,33 @@ void setup() {
 
   buildSynth();
   //testSynth();
-  AudioSynthWaveform LFO;
-  AudioSynthWaveformModulated wfm1;
-  AudioSynthWaveformModulated wfm2;
-  AudioSynthWaveformModulated wfm3;
+    AudioSynthWaveform LFO1;
+	AudioSynthWaveform LFO2;
+	AudioMixer4        mixer;
+	StereoVoice        svoice1;
+	StereoVoice        svoice2; // just to show 'class to class' example
+	StereoVoice        svoice3; // just to show 'class to class' example
+	svoice1.LFOIn1.connect(LFO1,0);
+	svoice1.LFOIn2.connect(LFO2,0);
+	svoice1.stereoOutL.connect(mixer,0);
+	svoice1.stereoOutR.connect(mixer,1);
+	
+	svoice2.LFOIn1.connect(LFO1,0);
+	svoice2.LFOIn2.connect(LFO2,0);
+	// the following two maybe makes no sense but are
+	// just to show 'class to class' example
+	// either this way
+	svoice2.stereoOutL.connect(svoice3.LFOIn1);
+	svoice2.stereoOutR.connect(svoice3.LFOIn2);
+	// or this way
+	svoice3.LFOIn1.connect(svoice2.stereoOutL);
+    svoice3.LFOIn2.connect(svoice2.stereoOutR);
+    // which would be the most logical?
 
-  audio_destination dests[3] = {{wfm1,0}, {wfm2,0}, {wfm3,0}};
+  /*
   Serial.printf("sizeof(dests) %d", sizeof(dests)/sizeof(audio_destination));
   AudioConnection *ac = new AudioConnection(LFO, 0, dests, sizeof(dests)/sizeof(audio_destination));
-  //AudioConnection *ac = new AudioConnection(LFO, 0, new audio_destination[3]{{wfm1,0}, {wfm2,0}, {wfm3,0}}, 3);
+*/
 }
 
 
